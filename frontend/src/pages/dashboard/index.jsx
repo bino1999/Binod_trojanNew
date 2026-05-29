@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Package, AlertTriangle, Wrench, ShoppingCart } from 'lucide-react'
+import { Package, AlertTriangle, Wrench, ShoppingCart, Search, ClipboardList, PlusCircle, ArrowRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import api from '@/lib/api'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -31,8 +32,27 @@ function statusBadge(status) {
   return <Badge variant={map[status] ?? 'secondary'}>{status}</Badge>
 }
 
+function QuickActionCard({ icon: Icon, label, description, color, bgColor, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="group bg-card border rounded-lg p-5 flex items-start gap-4 text-left hover:border-primary/50 hover:shadow-sm transition-all w-full"
+    >
+      <div className={`mt-0.5 p-2 rounded-md ${bgColor}`}>
+        <Icon className={`h-5 w-5 ${color}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm">{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+      <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-1 shrink-0" />
+    </button>
+  )
+}
+
 export default function Dashboard() {
   const { role } = useAuthStore()
+  const navigate = useNavigate()
 
   const { data: inventory = [] } = useQuery({
     queryKey: ['inventory'],
@@ -71,12 +91,76 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-sm mt-1">Inventory & activity overview</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={Package} label="Total Products" value={inventory.length} />
         <StatCard icon={AlertTriangle} label="Low Stock Items" value={lowStock.length} color="text-yellow-600" />
         <StatCard icon={Wrench} label="Open Service Jobs" value={openJobs.length} color="text-blue-600" />
         <StatCard icon={ShoppingCart} label="Today's Sales" value={formatCurrency(todayTotal)} sub={`${todaySales.length} transaction${todaySales.length !== 1 ? 's' : ''}`} color="text-green-600" />
       </div>
+
+      {/* Quick Actions */}
+      {(() => {
+        const actions = []
+        if (['admin', 'manager', 'cashier'].includes(role))
+          actions.push(
+            <QuickActionCard
+              key="sale"
+              icon={ShoppingCart}
+              label="New Direct Sale"
+              description="Create a sale transaction"
+              color="text-green-600"
+              bgColor="bg-green-50 dark:bg-green-950/40"
+              onClick={() => navigate('/sales')}
+            />
+          )
+        if (['admin', 'manager', 'technician'].includes(role))
+          actions.push(
+            <QuickActionCard
+              key="job"
+              icon={Wrench}
+              label="New Service Job"
+              description="Open a service job for a vehicle"
+              color="text-blue-600"
+              bgColor="bg-blue-50 dark:bg-blue-950/40"
+              onClick={() => navigate('/service-jobs')}
+            />
+          )
+        actions.push(
+          <QuickActionCard
+            key="inventory"
+            icon={Search}
+            label="Search Inventory"
+            description="Find parts and check stock levels"
+            color="text-purple-600"
+            bgColor="bg-purple-50 dark:bg-purple-950/40"
+            onClick={() => navigate('/inventory')}
+          />
+        )
+        if (['admin', 'manager', 'warehouse'].includes(role))
+          actions.push(
+            <QuickActionCard
+              key="purchase"
+              icon={ClipboardList}
+              label="New Purchase Order"
+              description="Order items from a supplier"
+              color="text-orange-600"
+              bgColor="bg-orange-50 dark:bg-orange-950/40"
+              onClick={() => navigate('/purchases')}
+            />
+          )
+        if (actions.length === 0) return null
+        return (
+          <div className="mb-8">
+            <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Quick Actions
+            </h2>
+            <div className={`grid gap-3 ${actions.length === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : actions.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {actions}
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         {lowStock.length > 0 && (

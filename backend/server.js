@@ -7,7 +7,14 @@ const routes = require('./src/routes')
 const app = express()
 const PORT = process.env.PORT || 3003
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://trojanew.netlify.app',
+]
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
+  credentials: true,
+}))
 app.use(express.json())
 app.use(morgan('dev'))
 
